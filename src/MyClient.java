@@ -51,7 +51,7 @@ public class MyClient {
                         // capable (job-server) check
                         boolean capable = false;
                         for (int i = 4; i <= 6; i++) {
-                            capable = Integer.parseInt(server[i]) > Integer.parseInt(words[i]);
+                            capable = Integer.parseInt(server[i]) >= Integer.parseInt(words[i]);
                             if (!capable)
                                 break;
                         }

@@ -1,15 +1,15 @@
 ## Getting Started
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+Welcome to the ds-java project on GitHub! This project aims to design and implement a plain/vanilla version of client-side simulator that acts as a simple job dispatcher for the ds-sim simulation protocol as described in the ds-sim user guide.
 
 ## Folder Structure
 
 The workspace contains two folders by default, where:
 
+- `bin`: the folder consisting the project binaries, ds-server and its components
 - `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+The compiled output files will be generated in the `bin` folder by default.
 
 > If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
 
