@@ -7,6 +7,7 @@ public class MyClient {
     public static Socket socket;
     public static BufferedReader din;
     public static DataOutputStream dout;
+    public static int dbc = 0;
 
     public static void main(String[] args) {
         try {
@@ -25,38 +26,47 @@ public class MyClient {
             sortstr(srvList, 0); // sort by server type
             sortasc(srvList, 1); // sort by child server id
             sortdsc(srvList, 4); // sort by core count
+            // for (String[] s : srvList) 
+            //     println(conwords(s));
+            // Thread.sleep(100000);
 
             // job scheduling
-            boolean isfinished = false;
             String keyword = "";
             while (!keyword.equals("NONE")) {
-                for (String[] server : srvList) {
-                    String[] words;
+                String[] words;
 
-                    // JCPL skip & reply parsing
-                    do {
-                        String reply = sendreceive("REDY");
-                        println(reply);
-                        words = reply.split(" ");
-                        keyword = words[0];
-                    } while (keyword.equals("JCPL"));
+                // JCPL skip & reply parsing
+                do {
+                    String reply = sendreceive("REDY");
+                    if (reply.contains("JOBN 2396"))
+                        dbc++;
+                    println("S: " + reply);
+                    words = reply.split(" ");
+                    keyword = words[0];
+                } while (keyword.equals("JCPL"));
 
-                    // NONE break
-                    if (keyword.equals("NONE"))
-                        break;
+                // NONE break
+                if (keyword.equals("NONE"))
+                    break;
 
-                    // JOBN stub
-                    if (keyword.equals("JOBN")) {
-                        String jobid = words[2];
-                        // capable (job-server) check
-                        boolean capable = false;
+                // JOBN stub
+                if (keyword.equals("JOBN")) {
+                    String jobid = words[2];
+                    // capable (job-server) check
+                    boolean capable = true;
+                    for (String[] server : srvList) {
                         for (int i = 4; i <= 6; i++) {
                             capable = Integer.parseInt(server[i]) >= Integer.parseInt(words[i]);
                             if (!capable)
                                 break;
                         }
-                        if (capable) // , then schedule the job
+                        if (capable) { // , then schedule the job
                             sendmsg("SCHD " + jobid + " " + server[0] + " " + server[1]);
+                            break;
+                        } else { // if not capable
+                            println("C: Current server incapable of running such job. (server=" + conwords(server).trim()
+                                    + ")");
+                        }
                     }
                 }
             }
@@ -66,27 +76,29 @@ public class MyClient {
             dout.flush();
             dout.close();
             socket.close();
-        } catch (Exception e) {
+        } catch (
+
+        Exception e) {
             System.out.println(e);
         }
     }
 
     public static void sendmsg(String s) throws Exception {
         // Thread.sleep(500);
-        println(sendreceive(s));
+        println("S: " + sendreceive(s));
     }
 
     public static String sendreceive(String s) throws Exception {
-        dout.write((s + "\n").getBytes());
-        return din.readLine();
+        send(s);
+        return receive();
     }
 
     public static String receive() throws Exception {
-        return din.readLine();
+        return din.readLine().trim();
     }
 
     public static void send(String s) throws Exception {
-        System.out.println("" + "s");
+        println("C: " + s);
         dout.write((s + "\n").getBytes());
     }
 
@@ -103,6 +115,13 @@ public class MyClient {
         return wordlist;
     }
 
+    public static String conwords(String[] ss) throws Exception {
+        String s = "";
+        for (String string : ss)
+            s += string + " ";
+        return s;
+    }
+
     private static void sortstr(ArrayList<String[]> srvList, int column) throws Exception {
         Comparator<String[]> comparator = new Comparator<String[]>() {
             @Override
@@ -115,7 +134,7 @@ public class MyClient {
         Collections.sort(srvList, comparator);
     }
 
-    private static void sortasc(ArrayList<String[]> srvList, int column) throws Exception {
+    private static void sortdsc(ArrayList<String[]> srvList, int column) throws Exception {
         Comparator<String[]> comparator = new Comparator<String[]>() {
             @Override
             public int compare(String[] o1, String[] o2) {
@@ -132,7 +151,7 @@ public class MyClient {
         Collections.sort(srvList, comparator);
     }
 
-    private static void sortdsc(ArrayList<String[]> srvList, int column) throws Exception {
+    private static void sortasc(ArrayList<String[]> srvList, int column) throws Exception {
         Comparator<String[]> comparator = new Comparator<String[]>() {
             @Override
             public int compare(String[] o1, String[] o2) {

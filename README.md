@@ -6,7 +6,7 @@ Welcome to the ds-java project on GitHub! This project aims to design and implem
 
 The workspace contains two folders by default, where:
 
-- `bin`: the folder consisting the project binaries, ds-server and its components
+- `ds-server`: the folder containing ds-server and its components
 - `src`: the folder to maintain sources
 
 The compiled output files will be generated in the `bin` folder by default.
