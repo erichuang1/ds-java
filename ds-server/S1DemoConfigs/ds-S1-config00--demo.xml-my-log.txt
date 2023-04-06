@@ -9,8 +9,6 @@ RCVD AUTH eric
 SENT OK
 RCVD REDY
 SENT JOBN 22 0 923 2 2000 2400
-RCVD REDY
-SENT JOBN 22 0 923 2 2000 2400
 RCVD SCHD 0 ant 0
 t:         22 job     0 (waiting) on # 0 of server ant (booting) SCHEDULED
 SENT OK

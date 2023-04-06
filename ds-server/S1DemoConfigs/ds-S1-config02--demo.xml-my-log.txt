@@ -9,8 +9,6 @@ RCVD AUTH eric
 SENT OK
 RCVD REDY
 SENT JOBN 28 0 1401 2 1800 3300
-RCVD REDY
-SENT JOBN 28 0 1401 2 1800 3300
 RCVD SCHD 0 monster 0
 t:         28 job     0 (waiting) on # 0 of server monster (booting) SCHEDULED
 SENT OK

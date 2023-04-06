@@ -7,7 +7,6 @@ public class MyClient {
     public static Socket socket;
     public static BufferedReader din;
     public static DataOutputStream dout;
-    public static int dbc = 0;
 
     public static void main(String[] args) {
         try {
@@ -19,32 +18,42 @@ public class MyClient {
             // handshake
             sendmsg("HELO");
             sendmsg("AUTH " + System.getProperty("user.name"));
-            sendmsg("REDY");
-
-            // get servers
-            ArrayList<String[]> srvList = gets();
-            sortstr(srvList, 0); // sort by server type
-            sortasc(srvList, 1); // sort by child server id
-            sortdsc(srvList, 4); // sort by core count
-            for (String[] s : srvList)
-                println(conwords(s));
-            // Thread.sleep(100000);
+            // sendmsg("REDY");
 
             // job scheduling
             String keyword = "";
             int currentserverid = 0;
+            boolean gotserver = false;
+            ArrayList<String[]> srvList = null;
             while (!keyword.equals("NONE")) {
                 String[] words;
 
                 // JCPL skip & reply parsing
                 do {
                     String reply = sendreceive("REDY");
-                    if (reply.contains("JOBN 2396"))
-                        dbc++;
                     println("S: " + reply);
                     words = reply.split(" ");
                     keyword = words[0];
                 } while (keyword.equals("JCPL"));
+
+                // get servers
+                if (!gotserver) {
+                    srvList = gets();
+                    // sortstr(srvList, 0); // sort by server type
+                    // sortasc(srvList, 1); // sort by child server id
+                    sortdsc(srvList, 4); // sort by core count
+                    String lrgserver = srvList.get(currentserverid)[0];
+                    for (int i=0; i<srvList.size(); i++) {
+                        String server = srvList.get(i)[0];
+                        if (!server.equals(lrgserver)){
+                            srvList.remove(i);
+                            i--;
+                        }
+                    }
+                    for (String[] s : srvList)
+                        println(conwords(s));
+                    gotserver = true;
+                }
 
                 // NONE break
                 if (keyword.equals("NONE"))
@@ -175,11 +184,11 @@ public class MyClient {
     }
 
     public static void println(Object o) throws Exception {
-        // System.out.println(o);
+        System.out.println(o);
     }
 
     public static void print(Object o) throws Exception {
-        // System.out.print(o);
+        System.out.print(o);
     }
 
     public static String timestamp() {
