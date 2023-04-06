@@ -12,7 +12,7 @@ public class MyClient {
     public static void main(String[] args) {
         try {
             // initialise connection
-            socket = new Socket("localhost", 51200);
+            socket = new Socket("localhost", 50000);
             din = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             dout = new DataOutputStream(socket.getOutputStream());
 
@@ -26,12 +26,13 @@ public class MyClient {
             sortstr(srvList, 0); // sort by server type
             sortasc(srvList, 1); // sort by child server id
             sortdsc(srvList, 4); // sort by core count
-            // for (String[] s : srvList) 
-            //     println(conwords(s));
+            for (String[] s : srvList)
+                println(conwords(s));
             // Thread.sleep(100000);
 
             // job scheduling
             String keyword = "";
+            int currentserverid = 0;
             while (!keyword.equals("NONE")) {
                 String[] words;
 
@@ -51,20 +52,25 @@ public class MyClient {
 
                 // JOBN stub
                 if (keyword.equals("JOBN")) {
-                    String jobid = words[2];
-                    // capable (job-server) check
-                    boolean capable = true;
-                    for (String[] server : srvList) {
+                    boolean capable = false;
+                    while (!capable) {
+                        String[] server = srvList.get(currentserverid);
+                        String jobid = words[2];
+                        // capable (job-server) check
                         for (int i = 4; i <= 6; i++) {
                             capable = Integer.parseInt(server[i]) >= Integer.parseInt(words[i]);
                             if (!capable)
                                 break;
                         }
+                        currentserverid++;
+                        if (currentserverid >= srvList.size())
+                            currentserverid = 0;
                         if (capable) { // , then schedule the job
                             sendmsg("SCHD " + jobid + " " + server[0] + " " + server[1]);
                             break;
                         } else { // if not capable
-                            println("C: Current server incapable of running such job. (server=" + conwords(server).trim()
+                            println("C: Current server incapable of running such job. (server="
+                                    + conwords(server).trim()
                                     + ")");
                         }
                     }
@@ -169,11 +175,11 @@ public class MyClient {
     }
 
     public static void println(Object o) throws Exception {
-        System.out.println(o);
+        // System.out.println(o);
     }
 
     public static void print(Object o) throws Exception {
-        System.out.print(o);
+        // System.out.print(o);
     }
 
     public static String timestamp() {
