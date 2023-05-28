@@ -1,0 +1,1 @@
+python3 ./s2_test.py "java MyClient" -n -r results/ref_results.json

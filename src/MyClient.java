@@ -7,6 +7,7 @@ public class MyClient {
     public static Socket socket;
     public static BufferedReader din;
     public static DataOutputStream dout;
+    public static ServerGroup servergroup;
 
     public static void main(String[] args) {
         try {
@@ -16,78 +17,51 @@ public class MyClient {
             dout = new DataOutputStream(socket.getOutputStream());
 
             // handshake
-            sendmsg("HELO");
-            sendmsg("AUTH " + System.getProperty("user.name"));
-            // sendmsg("REDY");
+            sendandprint("HELO");
+            sendandprint("AUTH " + System.getProperty("user.name"));
 
-            // job scheduling
-            String keyword = "";
-            int currentserverid = 0;
-            boolean gotserver = false;
-            ArrayList<String[]> srvList = null;
-            while (!keyword.equals("NONE")) {
-                String[] words;
+            // get all servers
+            // ArrayList<Server> servergroup = new ArrayList<Server>();
+            // sendandprint("REDY");
+            // String nRec = sendandreceive("GETS All").split(" ")[1];
+            // ArrayList<String> servers = receivelistsimple();
+            // for (String server : servers) {
+            //     servergroup.add(new Server(server));
+            // }
+            servergroup = new ServerGroup();
 
-                // JCPL skip & reply parsing
-                do {
-                    String reply = sendreceive("REDY");
-                    println("S: " + reply);
-                    words = reply.split(" ");
-                    keyword = words[0];
-                } while (keyword.equals("JCPL"));
+            // command branches
+            String keyword;
+            do {
+                // Sample reply
+                // JOBN 197 16 45499 1 200 1400
+                String[] reply = sendandreceive("REDY").split(" ");
+                println("S: " + conwords(reply));
+                keyword = reply[0];
 
-                // get servers
-                if (!gotserver) {
-                    srvList = gets();
-                    // sortstr(srvList, 0); // sort by server type
-                    // sortasc(srvList, 1); // sort by child server id
-                    sortdsc(srvList, 4); // sort by core count
-                    String lrgserver = srvList.get(currentserverid)[0];
-                    for (int i=0; i<srvList.size(); i++) {
-                        String server = srvList.get(i)[0];
-                        if (!server.equals(lrgserver)){
-                            srvList.remove(i);
-                            i--;
-                        }
-                    }
-                    for (String[] s : srvList)
-                        println(conwords(s));
-                    gotserver = true;
+                switch (keyword) {
+                    case "JCPL":
+                        break;
+                    case "NONE":
+                        break;
+                    case "JOBN":
+                        Job jobn = new Job(conwords(reply));
+                        Server selectedserver = getbestfit2(jobn.getspec());
+                        // selectedserver = getfirstcapable(reply[4], reply[5], reply[6]);
+                        // selectedserver = getbestfit(reply[4], reply[5], reply[6]);
+                        println("Selected Server=" + selectedserver);
+
+                        
+                        sendandprint("SCHD " + jobn.jobID + " " + selectedserver.serverType + " " + selectedserver.serverID);
+                        break;
+
+                    default:
+                        break;
                 }
-
-                // NONE break
-                if (keyword.equals("NONE"))
-                    break;
-
-                // JOBN stub
-                if (keyword.equals("JOBN")) {
-                    boolean capable = false;
-                    while (!capable) {
-                        String[] server = srvList.get(currentserverid);
-                        String jobid = words[2];
-                        // capable (job-server) check
-                        for (int i = 4; i <= 6; i++) {
-                            capable = Integer.parseInt(server[i]) >= Integer.parseInt(words[i]);
-                            if (!capable)
-                                break;
-                        }
-                        currentserverid++;
-                        if (currentserverid >= srvList.size())
-                            currentserverid = 0;
-                        if (capable) { // , then schedule the job
-                            sendmsg("SCHD " + jobid + " " + server[0] + " " + server[1]);
-                            break;
-                        } else { // if not capable
-                            println("C: Current server incapable of running such job. (server="
-                                    + conwords(server).trim()
-                                    + ")");
-                        }
-                    }
-                }
-            }
+            } while (!keyword.equals("NONE"));
 
             // close connection
-            sendmsg("QUIT");
+            sendandprint("QUIT");
             dout.flush();
             dout.close();
             socket.close();
@@ -98,39 +72,118 @@ public class MyClient {
         }
     }
 
-    public static void sendmsg(String s) throws Exception {
+    public static void sendandprint(String s) throws Exception {
         // Thread.sleep(500);
-        println("S: " + sendreceive(s));
+        println("S: " + sendandreceive(s));
     }
 
-    public static String sendreceive(String s) throws Exception {
-        send(s);
-        return receive();
+    public static String sendandreceive(String s) throws Exception {
+        sendonly(s);
+        return receiveonly();
     }
 
-    public static String receive() throws Exception {
+    public static String receiveonly() throws Exception {
         return din.readLine().trim();
     }
 
-    public static void send(String s) throws Exception {
+    public static void sendonly(String s) throws Exception {
         println("C: " + s);
         dout.write((s + "\n").getBytes());
     }
 
+    public static String[] getj() throws Exception {
+        String[] reply;
+        do {
+            reply = sendandreceive("REDY").split(" ");
+            println("S: " + conwords(reply));
+        } while (reply[0].equals("JCPL")); // JCPL skip
+        if (reply[0].equals("NONE"))
+            return null;
+        return reply;
+    }
+
+    public static ArrayList<String[]> getcapable(String cores, String mem, String disk) throws Exception {
+        println("Getting capable servers...");
+        String[] data = sendandreceive("GETS Capable " + cores + " " + mem + " " + disk).split(" "); // primary command
+        String nRecs = data[1]; // parameters
+        return receivelist(nRecs); // retrieve list
+    }
+
+    public static ServerGroup getcapable2(Jobspec jobspec) throws Exception {
+        println("Getting capable servers...");
+        String message = sendandreceive("GETS Capable " + jobspec);
+        Data data = new Data(message);
+        ArrayList<String> reply = receivelist(data.getnrec());
+        ServerGroup capable = new ServerGroup(reply);
+        return capable; // retrieve list
+    }
+
+    public static ArrayList<String> receivelist(int nRecs) throws Exception {
+        ArrayList<String> list = new ArrayList<String>();
+        sendonly("OK");
+        for (int i = 0; i < nRecs; i++) {
+            String message = receiveonly();
+            println(message);
+            list.add(message);
+        }
+        sendandprint("OK");
+        return list;
+    }
+
+    public static ArrayList<String> receivelistsimple() throws Exception {
+        ArrayList<String> list = new ArrayList<String>();
+        sendonly("OK");
+        String m;
+        do {
+            m = receiveonly();
+            println(m);
+            list.add(m);
+        } while (!m.equals("."));
+        sendandprint("OK");
+        return list;
+    }
+
+    public static String[] getfirstcapable(String cores, String mem, String disk) throws Exception {
+        return getcapable(cores, mem, disk).get(0);
+    }
+
+    private static String[] getbestfit(String cores, String mem, String disk) throws Exception {
+        println("Sorting servers based on core count...");
+        ArrayList<String[]> servers = getcapable(cores, mem, disk);
+        sortasc(servers, 4);
+        println("List of servers: ");
+        println(servers);
+
+        for (String[] server : servers) {
+            if (Integer.parseInt(server[4]) >= Integer.parseInt(cores)) {
+                return server;
+            }
+        }
+        return null;
+    }
+
+    private static Server getbestfit2(Jobspec jobspec) throws Exception {
+        ServerGroup capable = getcapable2(jobspec);
+        servergroup.merge(capable);
+        return capable.getleastruntime();
+    }
+
     public static ArrayList<String[]> gets() throws Exception {
         ArrayList<String[]> wordlist = new ArrayList<String[]>();
-        int total = Integer.parseInt(sendreceive("GETS All").split(" ")[1]);
-        send("OK");
+        int total = Integer.parseInt(sendandreceive("GETS All").split(" ")[1]);
+        sendonly("OK");
         for (int i = 0; i < total; i++) {
-            String s = receive();
+            String s = receiveonly();
             println(s);
             wordlist.add(s.split(" "));
         }
-        sendmsg("OK");
+        sendandprint("OK");
         return wordlist;
     }
 
     public static String conwords(String[] ss) throws Exception {
+        if (ss == null)
+            return "";
         String s = "";
         for (String string : ss)
             s += string + " ";
@@ -183,12 +236,26 @@ public class MyClient {
         Collections.sort(srvList, comparator);
     }
 
+    public static void println(ArrayList<String[]> a) throws Exception {
+        // String msg = "";
+        // for (String sentance[] : a) {
+        // msg+=conwords(sentance)+", ";
+        // }
+        // if (msg.length() >= 2) {
+        // msg = msg.substring(0, msg.length()-2);
+        // }
+        // msg = "[" + msg + "]";
+
+        for (String sentance[] : a)
+            println(conwords(sentance));
+    }
+
     public static void println(Object o) throws Exception {
-        System.out.println(o);
+        print(o + "\n");
     }
 
     public static void print(Object o) throws Exception {
-        System.out.print(o);
+        // System.out.print(o);
     }
 
     public static String timestamp() {
