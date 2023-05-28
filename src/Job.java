@@ -12,17 +12,31 @@ public class Job {
         disk = parse[6];
     }
 
+    public Job(Job sourcejob) {
+        submitTime = sourcejob.submitTime;
+        jobID = sourcejob.jobID;
+        estRuntime = sourcejob.estRuntime;
+        core = sourcejob.core;
+        memory = sourcejob.memory;
+        disk = sourcejob.disk;
+    }
+
     public Jobspec getspec() {
         return new Jobspec(core, memory, disk);
     }
 
     public String toString() {
-        return submitTime + " "
+        return "JOBN "
+                + submitTime + " "
                 + jobID + " "
                 + estRuntime + " "
                 + core + " "
                 + memory + " "
                 + disk;
+    }
+
+    public int getruntime() {
+        return Integer.parseInt(estRuntime);
     }
 
 }

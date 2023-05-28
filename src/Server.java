@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 
 public class Server {
+    public String key;
     public String serverType, serverID, state, curStartTime, core, memory, disk, wJobs, rJobs;
     public ArrayList<Job> jobs;
 
@@ -22,6 +23,7 @@ public class Server {
         disk = parse[6];
         wJobs = parse[7];
         rJobs = parse[8];
+        key = serverType + " " + serverID;
         jobs = new ArrayList<Job>();
     }
 
@@ -51,18 +53,31 @@ public class Server {
         disk = sourceserver.disk;
         wJobs = sourceserver.wJobs;
         rJobs = sourceserver.rJobs;
+        key = serverType + " " + serverID;
 
         // add newer jobs from sourceserver
         for (int i = Math.max(jobs.size() - 1, 0); i < sourceserver.jobs.size(); i++) {
-            jobs.add(sourceserver.jobs.get(i));
+            jobs.add(new Job(sourceserver.jobs.get(i)));
         }
     }
 
-    public int getruntime() {
+    public int printruntime() {
         int runtime = 0;
         for (Job job : jobs) {
-            runtime = runtime + Integer.parseInt(job.estRuntime);
+            runtime = runtime + job.getruntime();
         }
         return runtime;
+    }
+
+    public int getcore() {
+        return Integer.parseInt(core);
+    }
+
+    public String printjobs() {
+        String s = "";
+        for (Job job : jobs) {
+            s += job + "\n";
+        }
+        return s;
     }
 }

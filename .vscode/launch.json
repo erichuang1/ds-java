@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "MyClient",
+            "request": "launch",
+            "mainClass": "MyClient",
+            "projectName": "ds-java_1d84781c"
+        },
+        {
+            "type": "java",
+            "name": "MyClient",
+            "request": "launch",
+            "mainClass": "MyClient",
+            "projectName": "ds-java_8655f480"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
@@ -24,6 +38,5 @@
             "mainClass": "MyServer",
             "projectName": "ds-java_d9440b7d"
         }
-
     ]
 }
