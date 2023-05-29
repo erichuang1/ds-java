@@ -44,7 +44,8 @@ public class MyClient {
                         break;
                     case "JOBN":
                         Job job = new Job(conwords(reply));
-                        Server selectedserver = getbestfitrealtime(job.getspec());
+                        String s = job.toString();
+                        Server selectedserver = getbestfit(job.getspec());
                         // Server selectedserver = getbestfit(job.getspec());
                         println("Selected Server=" + selectedserver);
                         sendandprint(
@@ -102,36 +103,53 @@ public class MyClient {
     public static ServerGroup getcapable(Jobspec jobspec) throws Exception {
         println("Getting capable servers...");
         String message = sendandreceive("GETS Capable " + jobspec);
+        println("S: " + message);
         Data data = new Data(message);
         ArrayList<String> reply = receivelist(data.getnrec());
+        if (reply == null || reply.size() == 0)
+            return null;
         ServerGroup capable = new ServerGroup(reply);
         return capable; // retrieve list
     }
 
+    public static ServerGroup getavailable(Jobspec jobspec) throws Exception {
+        println("Getting available servers...");
+        String message = sendandreceive("GETS Avail " + jobspec);
+        println("S: " + message);
+        Data data = new Data(message);
+        ArrayList<String> reply = receivelist(data.getnrec());
+        if (reply == null || reply.size() == 0)
+            return null;
+        ServerGroup available = new ServerGroup(reply);
+        return available; // retrieve list
+    }
+
     public static ArrayList<String> receivelist(int nRecs) throws Exception {
         ArrayList<String> list = new ArrayList<String>();
+        if (nRecs <= 0) {
+            sendandprint("OK");
+            return list;
+        }
         sendonly("OK");
         for (int i = 0; i < nRecs; i++) {
             String message = receiveonly();
-            // println(message);
+            println(message);
             list.add(message);
         }
         sendandprint("OK");
         return list;
     }
 
-    private static Server getbestfitrealtime(Jobspec jobspec) throws Exception {
-        ServerGroup capable = getcapable(jobspec);
-        servergroup.merge(capable);
-        capable.updateonly(servergroup);
-        // ServerGroup leastcore = ServerGroup.filterbyleastcore(capable);
-        // servergroup.merge(leastcore);
-        // leastcore.updateonly(servergroup);
-        return capable.getleastruntime();
-    }
-
     private static Server getbestfit(Jobspec jobspec) throws Exception {
-        return servergroup.getleastruntime();
+        ServerGroup source = getavailable(jobspec);
+        if (source == null) {
+            sendandprint("REDY");
+            source = getcapable(jobspec);
+        }
+        source = ServerGroup.filterbyleastcore(source);
+        servergroup.merge(source);
+        source.updateonly(servergroup);
+        return source.getleastruntime();
     }
 
     public static String conwords(String[] ss) throws Exception {

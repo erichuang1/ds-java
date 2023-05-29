@@ -11,4 +11,8 @@ public class Data {
     public int getnrec() {
         return Integer.parseInt(nRecs);
     }
+
+    public String toString() {
+        return "DATA " + nRecs + " " + recLen;
+    }
 }
